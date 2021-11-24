@@ -5,48 +5,68 @@
 4. Display with modules
 const task1 = new Task('Read Book', '17/11/2021', 'Read a new book', '5');
 */
-import { addToTaskList } from './Modules/LocalSave.js';
+import { addToTaskList, deleteProject, addToLocalStorage } from './Modules/LocalSave.js';
 import { getFromLocalStorage } from './Modules/LocalSave.js';
+import { switchActiveProject } from './Modules/LocalSave.js';
+import { deleteTask } from './Modules/LocalSave.js';
 
 function sideBarUpdate() {
-    if (document.querySelector('.sidebarcontent') != undefined) {
-        for (let i = 0; i < document.querySelector('.sidebarcontent').children.length; i++) {
-            console.log(document.querySelector('.sidebarcontent').children[i]);
-            document.querySelector('.sidebarcontent').removeChild(document.querySelector('.sidebarcontent').children[i]);
-        }
+    console.log(document.querySelector('sidebar') != null);
+    if (document.querySelector('.sidebar') != null) {
+        document.querySelector('.sidebar').remove()
     }
-    const sidebarDiv = document.createElement('div');
-    sidebarDiv.classList.add('sidebar');
+
+    const sideBarDiv = document.createElement('div');
+    sideBarDiv.classList.add('sidebar');
 
     const sideBarContent = document.createElement('div');
-    sideBarContent.classList.add('sidebarcontent')
+    sideBarContent.classList.add('sidebar-content');
 
     const allBtn = document.createElement('button');
     allBtn.textContent = 'All';
+    allBtn.addEventListener('click', switchActiveProject);
 
     sideBarContent.append(allBtn);
-    sidebarDiv.append(sideBarContent);
 
-    let projArr = getFromLocalStorage();
-    if (projArr.length > 0) {
-        for (let i = 0; i < projArr.length; i++) {
+    let localArr = getFromLocalStorage();
+    if (localArr.length > 0) {
+        for (let i = 0; i < localArr.length; i++) {
+            const projectBtnDiv = document.createElement('div');
             const projectBtn = document.createElement('button');
-            projectBtn.textContent = projArr[i].name;
-            sideBarContent.append(projectBtn);
+            projectBtn.textContent = localArr[i].name;
+            projectBtn.addEventListener('click', switchActiveProject);
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.textContent = 'Delete';
+
+            deleteBtn.addEventListener('click', deleteProject);
+
+            const editBtn = document.createElement('button');
+            editBtn.textContent = 'Edit';
+
+
+            projectBtnDiv.append(projectBtn, editBtn, deleteBtn);
+            sideBarContent.append(projectBtnDiv);
         }
     }
-    document.body.append(sidebarDiv);
-    // document.querySelector('.sidebar').parentNode.replaceChild(sidebarDiv, document.querySelector('.sidebar'))
+
+    sideBarDiv.append(sideBarContent);
+
+    document.querySelector('.totalparent').insertBefore(sideBarDiv, document.querySelector('.inputdiv'));
 }
 
 const inputUI = (function inputUI() {
 
-    sideBarUpdate();
     const totalParent = document.createElement('div');
+    totalParent.classList.add('totalparent');
+
     const inputDiv = document.createElement('div');
+    inputDiv.classList.add('inputdiv');
 
     const contentParent = document.createElement('div');
     contentParent.classList.add('content-parent');
+
+
 
     const initBtn = document.createElement('button');
     let nameInput = document.createElement('input');
@@ -63,6 +83,10 @@ const inputUI = (function inputUI() {
     projInput.type = 'text';
     projInput.value = 'default';
 
+    inputDiv.append(nameInput, dateInput, descInput, prioInput, projInput, initBtn, contentParent);
+    totalParent.append(inputDiv);
+    document.body.append(totalParent);
+    sideBarUpdate();
 
     return {
         totalParent,
@@ -76,35 +100,68 @@ const inputUI = (function inputUI() {
         projInput
     }
 })();
-inputUI.inputDiv.append(inputUI.nameInput, inputUI.dateInput, inputUI.descInput, inputUI.prioInput, inputUI.projInput, inputUI.initBtn, inputUI.contentParent);
-inputUI.totalParent.append(inputUI.inputDiv);
-document.body.append(inputUI.totalParent);
 
+export function displayProjects(toDisp = 'All') {
 
-function displayProjects() {
+    console.log(toDisp);
+
     for (let i = 0; i < document.querySelector('.content-parent').children.length; i++) {
         inputUI.contentParent.removeChild(inputUI.contentParent.children[i]);
     }
+
     let projArr = getFromLocalStorage();
+    let outerLooper, totalLength;
+    if (toDisp == 'All') {
+        outerLooper = 0;
+        totalLength = projArr.length;
+    }
+    else {
+        for (let i = 0; i < projArr.length; i++) {
+            if (projArr[i].name == toDisp) {
+                outerLooper = i;
+                totalLength = i + 1;
+            }
+        }
+    }
+
     const displayDiv = document.createElement('div');
     if (projArr.length > 0) {
-        for (let i = 0; i < projArr.length; i++) {
+        for (outerLooper; outerLooper < totalLength; outerLooper++) {
             const projNameDiv = document.createElement('div');
-            projNameDiv.textContent = projArr[i].name;
+            projNameDiv.textContent = projArr[outerLooper].name;
             displayDiv.append(projNameDiv);
-            for (let j = 0; j < projArr[i].tasks.length; j++) {
-                const projTask = projArr[i].tasks[j];
+            for (let j = 0; j < projArr[outerLooper].tasks.length; j++) {
+                const projTask = projArr[outerLooper].tasks[j];
                 const projTaskDiv = document.createElement('div');
+                projTaskDiv.classList.add('tasks');
+                projTaskDiv.dataset.uid = projArr[outerLooper].tasks[j].uid;
                 for (let keys in projTask) {
-                    projTaskDiv.textContent += `${keys}:${projTask[keys]} `
-                    displayDiv.append(projTaskDiv);
+                    if (keys != 'project' && keys != 'uid') {
+                        console.log(projTask[keys]);
+                        projTaskDiv.textContent += `${keys}:${projTask[keys]} `;
+                        displayDiv.append(projTaskDiv);
+                    }
                 }
-            }
+                const deleteBtn = document.createElement('button');
+                deleteBtn.textContent = 'Delete';
 
+                deleteBtn.addEventListener('click', deleteTask);
+
+                const editBtn = document.createElement('button');
+                editBtn.textContent = 'Edit';
+
+                editBtn.addEventListener('click', editTask);
+
+                projTaskDiv.append(editBtn, deleteBtn);
+            }
         }
-        return displayDiv;
+
     }
-};
+    else {
+        displayDiv.textContent = 'Add Projects';
+    }
+    return displayDiv;
+}
 document.querySelector('.content-parent').append(displayProjects());
 
 function test123() {
@@ -112,11 +169,107 @@ function test123() {
         alert('Input all fields');
         return;
     }
+
+    let projArr = getFromLocalStorage();
+
+    for (let i = 0; i < projArr.length; i++) {
+        if (inputUI.projInput == projArr[i].name) {
+            alert('Project already exists');
+        }
+    }
+
     addToTaskList(inputUI.nameInput.value, inputUI.dateInput.value, inputUI.descInput.value, inputUI.prioInput.value, inputUI.projInput.value);
     document.querySelector('.content-parent').append(displayProjects());
     sideBarUpdate();
+
 }
 
-inputUI.initBtn.addEventListener('click', test123)
+inputUI.initBtn.addEventListener('click', test123);
+
+
+function editSaveFunc(nameV, dateV, descV, prioV, totalDiv) {
+    let contentDiv = document.querySelector('.content-parent');
+    let localArr = getFromLocalStorage();
+    console.log(nameV, dateV, descV, prioV, totalDiv);
+
+    let localProj;
+
+    if (nameV == "" || dateV == "" || descV == "" || prioV == "") {
+        alert('Input all fields');
+        return;
+    }
+    for (let i = 0; i < localArr.length; i++) {
+        for (let j = 0; j < localArr[i].tasks.length; j++) {
+            if (localArr[i].tasks[j].uid == totalDiv.parentNode.dataset.uid) {
+                localArr[i].tasks[j].name = nameV;
+                localArr[i].tasks[j].dueDate = dateV;
+                localArr[i].tasks[j].description = descV;
+                localArr[i].tasks[j].priority = prioV;
+                localProj = localArr[i].tasks[j].project;
+                document.querySelector(`.tasks[data-uid="${localArr[i].tasks[j].uid}"]`).dataset.uid = localArr[i].tasks[j].uid;
+                localArr[i].tasks[j].uid = nameV + dateV + descV + prioV + localProj;
+                break;
+            }
+        }
+    }
+    console.log(localProj);
+    let projObj = {};
+    for (let i = 0; i < localArr.length; i++) {
+        projObj[localArr[i].name] = localArr[i];
+    }
+    addToLocalStorage(projObj);
+    contentDiv.append(displayProjects(localProj));
+}
+
+function editTask() {
+    if (this.parentElement.textContent != "Edit Mode") {
+        let localDiv;
+        let localArr = getFromLocalStorage();
+        let localName, localDate, localDesc, localPrio, localProj;
+        for (let i = 0; i < localArr.length; i++) {
+            for (let j = 0; j < localArr[i].tasks.length; j++) {
+                if (localArr[i].tasks[j].uid == this.parentNode.dataset.uid) {
+                    console.log(`${localArr[i].tasks[j].uid}`);
+                    localName = localArr[i].tasks[j].name;
+                    localDate = localArr[i].tasks[j].dueDate;
+                    localDesc = localArr[i].tasks[j].description;
+                    localPrio = localArr[i].tasks[j].priority;
+                    localProj = localArr[i].tasks[j].project;
+                    localDiv = document.querySelector(`.tasks[data-uid="${localArr[i].tasks[j].uid}"]`);
+                }
+
+            }
+        }
+        // this.parentNode.textContent = "";
+
+        const editName = document.createElement('input');
+        const editDate = document.createElement('input');
+        const editDesc = document.createElement('input');
+        const editPrio = document.createElement('input');
+        const editSaveBtn = document.createElement('button');
+
+        editName.type = 'text';
+        editDate.type = 'date';
+        editDesc.type = 'textarea';
+        editPrio.type = 'number';
+        editSaveBtn.textContent = 'Save Edit';
+
+
+        editName.value = localName;
+        editDate.value = localDate;
+        editDesc.value = localDesc;
+        editPrio.value = localPrio;
+
+        editSaveBtn.addEventListener('click', function () {
+            editSaveFunc(editName.value, editDate.value, editDesc.value, editPrio.value, this);
+        })
+
+        this.parentElement.textContent = "Edit Mode";
+        localDiv.append(editName, editDate, editDesc, editPrio, editSaveBtn);
+    }
+    else {
+        displayProjects();
+    }
+}
 
 

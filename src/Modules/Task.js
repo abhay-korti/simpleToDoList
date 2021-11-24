@@ -5,6 +5,7 @@ export default class Task {
         this.description = description;
         this.priority = priority;
         this.project = project;
+        this.uid = this.name + this.dueDate + this.description.length + this.priority + this.project;
     }
 
     set setName(name) {
